@@ -1,5 +1,10 @@
 package models
 
+import (
+	"github.com/jinzhu/gorm"
+	"time"
+)
+
 type Tag struct {
 	Model
 
@@ -31,6 +36,17 @@ func ExitTagName(tagName string) bool {
 
 }
 
+func EditTag(id int, data interface{}) bool {
+	db.Model(&Tag{}).Where("id = ?", id).Updates(data)
+	return true
+}
+
+func ExistTagByID(id int) bool {
+	var tag Tag
+	db.Select("id").Where("id = ?", id).First(&tag)
+	return true
+}
+
 func AddTag(name string, state int, createdBy string) bool {
 	db.Create(&Tag{
 		Name:      name,
@@ -39,4 +55,27 @@ func AddTag(name string, state int, createdBy string) bool {
 	})
 	return true
 
+}
+
+// BeforeCreate
+// 创建：BeforeSave、BeforeCreate、AfterCreate、AfterSave
+// 更新：BeforeSave、BeforeUpdate、AfterUpdate、AfterSave
+// 删除：BeforeDelete、AfterDelete
+// 查询：AfterFind
+func (t *Tag) BeforeCreate(scope *gorm.Scope) error {
+	return scope.SetColumn("CreatedOn", time.Now().Unix())
+}
+
+func (t *Tag) BeforeUpdate(scope *gorm.Scope) error {
+	return scope.SetColumn("ModifiedOn", time.Now().Unix())
+}
+
+func DeleteTag(id int) bool {
+	db.Where("id = ?", id).Delete(&Tag{})
+	return true
+}
+
+func GetTag(id int) (tag Tag) {
+	db.Where("id = ?", id).First(&tag)
+	return
 }
