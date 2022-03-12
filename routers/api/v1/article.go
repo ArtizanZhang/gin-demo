@@ -3,6 +3,8 @@ package v1
 import (
 	"github.com/ArtizanZhang/gin-demo/models"
 	"github.com/ArtizanZhang/gin-demo/pkg/e"
+	"github.com/ArtizanZhang/gin-demo/pkg/setting"
+	"github.com/ArtizanZhang/gin-demo/pkg/util"
 	"github.com/astaxie/beego/validation"
 	"github.com/gin-gonic/gin"
 	"github.com/unknwon/com"
@@ -10,11 +12,50 @@ import (
 	"net/http"
 )
 
-func GetArticle(c *gin.Context) {
+func GetArticles(c *gin.Context) {
+	maps := make(map[string]interface{})
+	code := e.ERROR
+	total := 0
+	var lists []models.Article
+
+	valid := validation.Validation{}
+
+	if arg := c.Query("state"); arg != "" {
+		state := com.StrTo(arg).MustInt()
+		valid.Range(state, 0, 1, "state").Message("状态只允许0和1")
+		maps["state"] = state
+	}
+
+	if arg := c.Query("tag_id"); arg != "" {
+		tagId := com.StrTo(arg).MustInt()
+		valid.Min(tagId, 1, "tag_id").Message("tag_id必须大于1")
+		maps["tag_id"] = tagId
+	}
+
+	if valid.HasErrors() {
+		code = e.INVALID_PARAMS
+	} else {
+		total = models.GetArticleTotal(maps)
+		if total > 0 {
+			lists = models.GetArticles(util.GetPage(c), setting.PageSize, maps)
+		}
+		code = e.SUCCESS
+	}
+
+	data := map[string]interface{}{
+		"total": total,
+		"lists": lists,
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"code": code,
+		"msg":  e.GetMsg(code),
+		"data": data,
+	})
 
 }
 
-func GetArticles(c *gin.Context) {
+func GetArticle(c *gin.Context) {
 
 }
 

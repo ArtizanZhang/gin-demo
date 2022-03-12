@@ -8,8 +8,8 @@ import (
 type Article struct {
 	Model
 
-	TagID int `json:"tag_id" gorm:"index"` // 声明这个字段为索引
-	Tag   Tag `json:"tag"`                 // 嵌套的struct 它利用TagID 与 Tag模型相互关联
+	TagID int `json:"tag_id" gorm:"index"`
+	Tag   Tag `json:"tag"`
 
 	Title      string `json:"title"`
 	Desc       string `json:"desc"`
@@ -34,7 +34,8 @@ func GetArticleTotal(maps interface{}) (count int) {
 }
 
 func GetArticles(pageNum, pageSize int, maps interface{}) (articles []Article) {
-	db.Preloads("Tag").Where(maps).Offset(pageNum).Limit(pageSize).Find(&articles)
+	//db.Preloads("Tag").Where(maps).Offset(pageNum).Limit(pageSize).Find(&articles)  // preloads 不行
+	db.Preload("Tag").Where(maps).Offset(pageNum).Limit(pageSize).Find(&articles)
 	return
 }
 
