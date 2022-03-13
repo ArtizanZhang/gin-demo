@@ -57,6 +57,38 @@ func GetArticles(c *gin.Context) {
 
 func GetArticle(c *gin.Context) {
 
+	id := com.StrTo(c.Query("id")).MustInt()
+
+	valid := validation.Validation{}
+
+	valid.Min(id, 1, "id").Message("id最小为1")
+
+	code := e.SUCCESS
+
+	if valid.HasErrors() {
+		code = e.INVALID_PARAMS
+		c.JSON(http.StatusOK, gin.H{
+			"code": code,
+			"msg":  e.GetMsg(code),
+			"data": nil,
+		})
+		return
+	}
+
+	var article interface{}
+	if arg := models.GetArticle(id); arg.ID == 0 {
+		code = e.ERROR_NOT_EXIST_ARTICLE
+		article = nil
+	} else {
+		code = e.SUCCESS
+		article = arg
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"code": code,
+		"msg":  e.GetMsg(code),
+		"data": article,
+	})
 }
 
 func AddArticle(c *gin.Context) {
@@ -115,9 +147,123 @@ func AddArticle(c *gin.Context) {
 }
 
 func EditArticle(c *gin.Context) {
+	id := com.StrTo(c.Param("id")).MustInt()
 
+	valid := validation.Validation{}
+	valid.Required(id, "id").Message("id 必填")
+	tagId := -1
+	if arg := c.Query("tag_id"); arg != "" {
+		tagId = com.StrTo(arg).MustInt()
+		valid.Min(tagId, 1, "tag_id").Message("tag_id 必须大于1")
+	}
+
+	code := e.ERROR
+	article := models.GetArticle(id)
+	if article.ID == 0 {
+		code = e.ERROR_NOT_EXIST_ARTICLE
+		c.JSON(http.StatusOK, gin.H{
+			"code":  code,
+			"msg":   e.GetMsg(code),
+			"data":  nil,
+			"valid": valid.Errors,
+		})
+		return
+
+	}
+
+	if valid.HasErrors() {
+		code = e.INVALID_PARAMS
+		c.JSON(http.StatusOK, gin.H{
+			"code":  code,
+			"msg":   e.GetMsg(code),
+			"data":  nil,
+			"valid": valid.Errors,
+		})
+		return
+	}
+
+	title := c.Query("title")
+	desc := c.Query("desc")
+	content := c.Query("content")
+	createdBy := c.Query("created_by")
+	state := com.StrTo(c.Query("state")).MustInt()
+
+	data := make(map[string]interface{})
+	if tagId > 0 {
+		data["tag_id"] = tagId
+	}
+
+	if title != "" {
+		data["title"] = title
+	}
+
+	if desc != "" {
+		data["desc"] = desc
+	}
+
+	if content != "" {
+		data["content"] = content
+	}
+
+	if createdBy != "" {
+		data["createdBy"] = createdBy
+	}
+	if state != 0 {
+		data["state"] = state
+	}
+
+	models.EditArticle(id, data)
+	code = e.SUCCESS
+
+	var res map[string]interface{}
+	c.JSON(http.StatusOK, gin.H{
+		"code":  code,
+		"msg":   e.GetMsg(code),
+		"data":  make(map[string]string),
+		"data2": res,
+	})
 }
 
 func DeleteArticle(c *gin.Context) {
+	id := com.StrTo(c.Param("id")).MustInt()
+
+	valid := validation.Validation{}
+	valid.Required(id, "id").Message("id 必填")
+
+	code := e.ERROR
+	if valid.HasErrors() {
+		code = e.INVALID_PARAMS
+		c.JSON(http.StatusOK, gin.H{
+			"code":  code,
+			"msg":   e.GetMsg(code),
+			"data":  nil,
+			"valid": valid.Errors,
+		})
+		return
+	}
+
+	article := models.GetArticle(id)
+	if article.ID == 0 {
+		code = e.ERROR_NOT_EXIST_ARTICLE
+		c.JSON(http.StatusOK, gin.H{
+			"code":  code,
+			"msg":   e.GetMsg(code),
+			"data":  nil,
+			"valid": valid.Errors,
+		})
+		return
+
+	}
+
+	models.DeleteTag(id)
+	code = e.SUCCESS
+
+	var res map[string]interface{}
+	c.JSON(http.StatusOK, gin.H{
+		"code":  code,
+		"msg":   e.GetMsg(code),
+		"data":  make(map[string]string),
+		"data2": res,
+	})
 
 }
